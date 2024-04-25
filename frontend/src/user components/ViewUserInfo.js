@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Link, Navigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { useParams } from 'react-router-dom'
 import { useUsersContext } from "../hooks/useUsersContext"
 
@@ -31,10 +31,9 @@ const ViewUserInfo = () => {
   const userlg = userlgs.find(userlg => userlg._id === id)
 
   if (!userlg) {
-    return <Navigate to="/loginLG" />
+    return <div>Loading...</div>
   }
   
- 
     return (
         <div className="ViewForm">
         <form className="view">
