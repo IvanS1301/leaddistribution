@@ -31,14 +31,14 @@ function App() {
               )
             ) : <Navigate to="/loginLG" />} />
 
-            <Route path="/add" element={<AddForm />} />
-            <Route path="/edit/:id" element={<EditForm />} />
-            <Route path="/agentedit/:id" element={<AGEditForm />} />
-            <Route path="/view/:id" element={<ReadForm />} />
-            <Route path="/agentview/:id" element={<AGReadForm />} />
-            <Route path="/useredit/:id" element={<EditUserInfo />} />
-            <Route path="/userhome" element={<UserHome />} />
-            <Route path="/viewuser/:id" element={<ReadUserInfo />} />
+            <Route path="/add" element={userLG ? <AddForm /> : <Navigate to="/loginLG" />} />
+            <Route path="/edit/:id" element={userLG ? <EditForm /> : <Navigate to="/loginLG" />} />
+            <Route path="/agentedit/:id" element={userLG ? <AGEditForm /> : <Navigate to="/loginLG" />} />
+            <Route path="/view/:id" element={userLG ? <ReadForm /> : <Navigate to="/loginLG" />} />
+            <Route path="/agentview/:id" element={userLG ? <AGReadForm /> : <Navigate to="/loginLG" />} />
+            <Route path="/useredit/:id" element={userLG ? <EditUserInfo /> : <Navigate to="/loginLG" />} />
+            <Route path="/userhome" element={userLG ? <UserHome /> : <Navigate to="/loginLG" />} />
+            <Route path="/viewuser/:id" element={userLG ? <ReadUserInfo /> : <Navigate to="/loginLG" />} />
 
             {/* Login Route */}
             <Route path="/loginLG" element={!userLG ? <LoginLG /> : <Navigate to="/" />} />
