@@ -54,6 +54,11 @@ return (
                             <button className="signout" onClick={handleClick}><i class="fa-solid fa-right-from-bracket"></i>Sign Out</button>
                         )}
                     </div>
+                <div className="item">
+                    {userLG && (
+                        <Link to={"#"}><i className="fas fa-user"></i>{userLG.name}</Link>
+                        )}
+                    </div>
             </div>
         
     </nav>
