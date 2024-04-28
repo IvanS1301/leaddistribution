@@ -36,6 +36,10 @@ export const leadsReducer = (state, action) => {
       return {
         unassignedLeads: state.unassignedLeads.filter((l) => l._id !== action.payload._id)
       }
+    case 'SET_TL-LEADS':
+      return { 
+        tlLeads: action.payload 
+      }
     default:
       return state
   }
@@ -44,7 +48,8 @@ export const leadsReducer = (state, action) => {
 export const LeadsContextProvider = ({ children }) => {
   const [state, dispatch] = useReducer(leadsReducer, { 
     leads: [],
-    unassignedLeads: []
+    unassignedLeads: [],
+    tlLeads: []
   })
   
   return (
