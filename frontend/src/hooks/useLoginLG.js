@@ -25,6 +25,7 @@ export const useLoginLG = () => {
       // Save the user to localStorage
       localStorage.setItem('userLG', JSON.stringify({
         _id: json._id,
+        name: json.name,
         email: json.email,
         token: json.token,
         role: json.role // Include the role in the user object
@@ -33,6 +34,7 @@ export const useLoginLG = () => {
       // Update the auth context
       dispatch({ type: 'LOGIN', payload: {
         _id: json._id,
+        name: json.name,
         email: json.email,
         token: json.token,
         role: json.role // Include the role in the user object
