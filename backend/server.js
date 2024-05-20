@@ -2,8 +2,11 @@ require('dotenv').config()
 
 const express = require('express')
 const mongoose = require('mongoose')
+
+// ROUTES IMPORT
 const leadRoutes = require('./routes/leads')
 const userLGRoutes = require('./routes/userLG')
+const emailRoutes = require('./routes/emails')
 
 // express app
 const app = express()
@@ -19,6 +22,7 @@ app.use((req, res, next) => {
 //routes
 app.use('/api/leads', leadRoutes)
 app.use('/api/userLG', userLGRoutes)
+app.use('/api/emails', emailRoutes)
 
 // connect to db
 mongoose.connect(process.env.MONGO_URI)
