@@ -59,7 +59,8 @@ const DashboardTabs = () => {
         return <div>Loading...</div>;
     }
 
-    const bookedCount = inventory.callDispositionCounts.Booked
+    const bookedCount = inventory.callDispositionCounts ? inventory.callDispositionCounts.Booked || 0 : 0;
+    const warmLeadCount = inventory.callDispositionCounts ? inventory.callDispositionCounts.warmLead || 0 : 0;
 
 
     return (
@@ -174,14 +175,14 @@ const DashboardTabs = () => {
                 <Box
                     gridColumn="span 4"
                     gridRow="span 2"
-                    backgroundColor="#1F2A40"
+                    backgroundColor="#141b2d"
                     overflow="auto"
                 >
                     <Box
                         display="flex"
                         justifyContent="space-between"
                         alignItems="center"
-                        borderBottom={`4px solid #141b2d`}
+                        borderBottom={`4px solid #1F2A40`}
                         colors="#e0e0e0"
                         p="15px"
                     >
@@ -195,7 +196,7 @@ const DashboardTabs = () => {
                             display="flex"
                             justifyContent="space-between"
                             alignItems="center"
-                            borderBottom={`4px solid #141b2d`}
+                            borderBottom={`4px solid #1F2A40`}
                             p="15px"
                         >
                             <Box>
@@ -218,10 +219,10 @@ const DashboardTabs = () => {
                 <Box
                     gridColumn="span 4"
                     gridRow="span 2"
-                    backgroundColor="#1F2A40"
+                    backgroundColor="#141b2d"
                     p="30px"
                 >
-                    <Typography variant="h5" fontWeight="600">
+                    <Typography variant="h5" fontWeight="600" color="#e0e0e0">
                         Booked
           </Typography>
                     <Box
@@ -230,13 +231,39 @@ const DashboardTabs = () => {
                         alignItems="center"
                         mt="25px"
                     >
-                        <ProgressCircle size="125" progress={bookedCount} />
+                        <ProgressCircle size="125" progress={bookedCount} showText={true} text={bookedCount} />
                         <Typography
                             variant="h5"
                             color="#4cceac"
                             sx={{ mt: "15px" }}
                         >
                             {bookedCount} booked generated
+            </Typography>
+                        <Typography>Includes extra misc expenditures and costs</Typography>
+                    </Box>
+                </Box>
+                <Box
+                    gridColumn="span 4"
+                    gridRow="span 2"
+                    backgroundColor="#141b2d"
+                    p="30px"
+                >
+                    <Typography variant="h5" fontWeight="600" color="#e0e0e0">
+                        Warm Lead
+          </Typography>
+                    <Box
+                        display="flex"
+                        flexDirection="column"
+                        alignItems="center"
+                        mt="25px"
+                    >
+                        <ProgressCircle size="125" progress={warmLeadCount} showText={true} text={warmLeadCount} />
+                        <Typography
+                            variant="h5"
+                            color="#4cceac"
+                            sx={{ mt: "15px" }}
+                        >
+                            {warmLeadCount} warm lead generated
             </Typography>
                         <Typography>Includes extra misc expenditures and costs</Typography>
                     </Box>
