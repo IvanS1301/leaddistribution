@@ -149,9 +149,6 @@ const DashboardTabs = () => {
                         }
                     />
                 </Box>
-
-                {/* ROW 2 */}
-
                 <Box
                     gridColumn="span 3"
                     backgroundColor="#141b2d"
@@ -171,6 +168,8 @@ const DashboardTabs = () => {
                         }
                     />
                 </Box>
+
+                {/* ROW 2 */}
 
                 <Box
                     gridColumn="span 4"
