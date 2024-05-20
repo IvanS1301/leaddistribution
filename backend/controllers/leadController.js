@@ -1,68 +1,79 @@
 const Lead = require('../models/leadModel')
+const { updateInventoryCounts } = require('./inventoryController')
+const RecentBooking = require('../models/recentBookingModel')
 const mongoose = require('mongoose')
 
-// get all leads
+/** --- GET ALL LEADS FOR LEAD GENERATION --- */
 const getLeads = async (req, res) => {
     const userLG_id = req.userLG._id
 
-    const leads = await Lead.find({ userLG_id }).sort({createdAt: -1})
+    const leads = await Lead.find({ userLG_id }).sort({ createdAt: -1 })
 
     res.status(200).json(leads)
 }
 
-// get all leads for TL
+/** --- FOR ADMIN/TEAM LEADER ONLY --- */
 const getTLLeads = async (req, res) => {
 
-    const leads = await Lead.find({ }).sort({createdAt: -1})
+    const leads = await Lead.find({}).sort({ createdAt: -1 })
 
     res.status(200).json(leads)
 }
 
-// Fetch unassigned leads
+/** --- LEAD DISTRIBUTION FOR TELEMARKETERS --- */
 const getUnassignedLeads = async (req, res) => {
     const userLG_id = req.userLG._id;
 
-    // Check if there are any unassigned leads assigned to the current Telemarketer
-    let unassignedLeads = await Lead.find({ assignedTo: userLG_id }).exec();
+    try {
+        // Check if there are any unassigned leads assigned to the current Telemarketer
+        let unassignedLeads = await Lead.find({ assignedTo: userLG_id }).exec()
 
-    // If there are no assigned leads or all assigned leads have been updated, fetch new unassigned leads and assign them to the Telemarketer
-    if (unassignedLeads.length === 0 || unassignedLeads.every(lead => lead.callDisposition && lead.remarks)) {
-        // Fetch new unassigned leads, limit to 10, and sort them
-        unassignedLeads = await Lead.find({ assignedTo: { $exists: false } })
-                                    .limit(10)
-                                    .sort({ createdAt: -1 }) // Sort by createdAt field in descending order
-                                    .exec();
-        
-        // Assign fetched leads to the current Telemarketer
-        unassignedLeads.forEach(async (lead) => {
-            await Lead.findOneAndUpdate({ _id: lead._id }, { assignedTo: userLG_id });
-        });
+        // If there are no assigned leads or all assigned leads have been updated, fetch new unassigned leads and assign them to the Telemarketer
+        if (unassignedLeads.length === 0 || unassignedLeads.every(lead => lead.callDisposition && lead.remarks)) {
+            // Fetch new unassigned leads, limit to 10, and sort them
+            unassignedLeads = await Lead.find({ assignedTo: { $exists: false } })
+                .limit(10)
+                .sort({ createdAt: -1 }) // Sort by createdAt field in descending order
+                .exec();
+
+            // Assign fetched leads to the current Telemarketer
+            await Promise.all(unassignedLeads.map(async (lead) => {
+                await Lead.findOneAndUpdate({ _id: lead._id }, { assignedTo: userLG_id })
+            }))
+        }
+
+        // Update inventory after distribution
+        await updateInventoryCounts()
+
+        // Send the list of unassigned leads assigned to the Telemarketer as the response
+        res.status(200).json(unassignedLeads)
+    } catch (error) {
+        // Handle any errors and send an error response
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' })
     }
-
-    // Send the list of unassigned leads assigned to the Telemarketer as the response
-    res.status(200).json(unassignedLeads);
 }
 
-// get a single lead
+/** --- GET A SINGLE LEAD --- */
 const getSingleLead = async (req, res) => {
     const { id } = req.params
 
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No lead found'})
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'No lead found' })
     }
 
     const lead = await Lead.findById(id)
 
     if (!lead) {
-        return res.status(404).json({error: "No lead found"})
+        return res.status(404).json({ error: "No lead found" })
     }
 
     res.status(200).json(lead)
 }
 
-// create new lead
+/** --- CREATE A NEW LEAD --- */
 const createLead = async (req, res) => {
-    const {name, type, phonenumber, streetaddress, city, postcode, emailaddress, callDisposition, remarks, assignedTo} = req.body
+    const { name, type, phonenumber, streetaddress, city, postcode, emailaddress, callDisposition, remarks, assignedTo } = req.body
 
     let emptyFields = []
 
@@ -93,46 +104,79 @@ const createLead = async (req, res) => {
 
     // add doc to db
     try {
-      const userLG_id = req.userLG._id
-      const lead = await Lead.create({name, type, phonenumber, streetaddress, city, postcode, emailaddress, callDisposition, remarks, userLG_id, assignedTo})
-      res.status(200).json(lead)
+        const userLG_id = req.userLG._id
+        const lead = await Lead.create({ name, type, phonenumber, streetaddress, city, postcode, emailaddress, callDisposition, remarks, userLG_id, assignedTo })
+
+        // Update inventory after creating lead
+        await updateInventoryCounts()
+
+        // Add recent booking if callDisposition is 'Booked'
+        if (callDisposition === 'Booked') {
+            const recentBooking = new RecentBooking({
+                telemarketerName: req.userLG.name,
+                callDisposition: 'Booked',
+                lead: lead._id,
+                leadName: lead.name
+            });
+            await recentBooking.save()
+        }
+
+        res.status(200).json(lead)
     } catch (error) {
-      res.status(400).json({error: error.message}) 
+        res.status(400).json({ error: error.message })
     }
 }
 
-// delete lead
+/** --- DELETE LEAD --- */
 const deleteLead = async (req, res) => {
     const { id } = req.params
 
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No lead found'})
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'No lead found' })
     }
 
-    const lead = await Lead.findOneAndDelete({_id: id})
+    const lead = await Lead.findOneAndDelete({ _id: id })
 
-    if(!lead) {
-        return res.status(400).json({error: 'No lead found'})
+    if (!lead) {
+        return res.status(400).json({ error: 'No lead found' })
     }
+
+    // Update inventory after deleting lead
+    await updateInventoryCounts()
 
     res.status(200).json(lead)
 
 }
 
-// update lead
+/** --- UPDATE LEAD --- */
 const updateLead = async (req, res) => {
     const { id } = req.params
+    const { callDisposition } = req.body
 
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return res.status(404).json({error: 'No lead found'})
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'No lead found' })
     }
 
-    const lead = await Lead.findOneAndUpdate({_id: id}, {
+    const lead = await Lead.findOneAndUpdate({ _id: id }, {
         ...req.body
     })
 
-    if(!lead) {
-        return res.status(400).json({error: 'No lead found'})
+    if (!lead) {
+        return res.status(400).json({ error: 'No lead found' })
+    }
+
+    // Update inventory after updating lead
+    await updateInventoryCounts()
+
+    // Add recent booking if callDisposition is 'Booked'
+    if (callDisposition === 'Booked') {
+        const recentBooking = new RecentBooking({
+            telemarketerName: req.userLG.name,
+            callDisposition: 'Booked',
+            lead: lead._id,
+            leadName: lead.name
+        });
+        await recentBooking.save();
     }
 
     res.status(200).json(lead)
