@@ -1,4 +1,6 @@
 const express = require('express')
+
+// leadController.js functions
 const {
     createLead,
     getLeads,
@@ -8,32 +10,34 @@ const {
     getTLLeads,
     getUnassignedLeads
 } = require('../controllers/leadController')
-const requireAuth = require('../middleware/requireAuth')
 
+// inventoryController.js function
+const { getInventory } = require('../controllers/inventoryController')
+
+// recentBookingController.js function
+const { getRecentBookings } = require('../controllers/recentBookingController')
+
+const requireAuth = require('../middleware/requireAuth')
 const router = express.Router()
 
 // require auth for all lead routes
 router.use(requireAuth)
 
-// GET all leads
-router.get('/', getLeads)
+/** --- ADMIN --- */
+router.get('/tl', getTLLeads) // GET all TL leads
+router.get('/inventory', getInventory) // GET inventory
+router.get('/recent-bookings', getRecentBookings)
 
-// GET all TL leads
-router.get('/tl', getTLLeads)
+/** --- TELEMARKETER --- */
+router.get('/unassigned', getUnassignedLeads) // LEAD DISTRIBUTION
 
-// GET unassigned leads
-router.get('/unassigned', getUnassignedLeads)
+/** --- LEAD GENERATION  --- */
+router.get('/', getLeads) // GET all leads for Lead Generation
 
-// GET a single lead
-router.get('/:id', getSingleLead)
-
-// POST a new lead
-router.post('/', createLead)
-
-// DELETE a lead
-router.delete('/:id', deleteLead)
-
-// UPDATE a lead
-router.patch('/:id', updateLead)
+/** --- ALL  --- */
+router.get('/:id', getSingleLead) // GET a single lead
+router.post('/', createLead) // POST a new lead
+router.delete('/:id', deleteLead) // DELETE a lead
+router.patch('/:id', updateLead) // UPDATE a lead
 
 module.exports = router
