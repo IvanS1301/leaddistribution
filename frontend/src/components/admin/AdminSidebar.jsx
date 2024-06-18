@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { HomeOutlined, PeopleOutlined, ContactsOutlined, ReceiptOutlined } from "@mui/icons-material";
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import { AiOutlineMenu } from "react-icons/ai";
 import { Typography } from "@mui/material";
 import { useAuthContext } from '../../hooks/useAuthContext';
 import { useLogoutLG } from '../../hooks/useLogoutLG';
 
 const Item = ({ title, to, icon, selected, setSelected, isCollapsed }) => {
-  const paddingStyle = isCollapsed ? "10px 15px" : "10px 35px"
+  const paddingStyle = isCollapsed ? "10px 15px" : "10px 25px";
   return (
     <MenuItem
       active={selected === title}
@@ -28,10 +29,47 @@ const Item = ({ title, to, icon, selected, setSelected, isCollapsed }) => {
 };
 
 const AdminSidebar = () => {
+  const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [selected, setSelected] = useState("Dashboard");
+  const [selected, setSelected] = useState("");
   const { logoutLG } = useLogoutLG();
   const { userLG } = useAuthContext();
+
+  useEffect(() => {
+    const path = location.pathname;
+    switch (path) {
+      case "/":
+        setSelected("Dashboard");
+        break;
+      case "/AdminUsers":
+        setSelected("Users");
+        break;
+      case "/AdminLeads":
+        setSelected("Leads");
+        break;
+      case "/AdminEmails":
+        setSelected("Emails");
+        break;
+      case "/AdminSignup":
+        setSelected("Add User");
+        break;
+      case `/viewprofile/${userLG._id}`:
+        setSelected("Profile");
+        break;
+      case "/AdminBookings":
+        setSelected("Recent Bookings");
+        break;
+      case "/AdminStaff":
+        setSelected("Staff Performance");
+        break;
+      case "/Settings":
+        setSelected("Settings");
+        break;
+      default:
+        setSelected("");
+        break;
+    }
+  }, [location.pathname, userLG._id]);
 
   const handleClick = () => {
     logoutLG();
@@ -66,7 +104,7 @@ const AdminSidebar = () => {
           }
         },
       }}>
-        <MenuItem className="flex items-center justify-between">
+        <MenuItem className="flex items-center justify-between" style={{ backgroundColor: "transparent", cursor: "default" }}>
           <AiOutlineMenu
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={`text-2xl text-white
@@ -75,13 +113,15 @@ const AdminSidebar = () => {
               !isCollapsed && "rotate-180"}`}
           />
 
-          <div className="inline-flex items-center mt-1">
-            <img
-              src={process.env.PUBLIC_URL + '/logo.png'}
-              alt="logo"
-              className={`image-xl
-                        rounded cursor-pointer block float-left mr-2 mr-18 duration-500 ${isCollapsed && "rotate-[360deg]"}`}
-            />
+          <div className="inline-flex items-center mt-1" style={{ cursor: "default" }}>
+            {!isCollapsed && (
+              <img
+                src={process.env.PUBLIC_URL + '/logo.png'}
+                alt="logo"
+                className={`image-xl
+                          rounded cursor-pointer block float-left mr-2 mr-18 duration-500 ${isCollapsed && "rotate-[360deg]"}`}
+              />
+            )}
             {!isCollapsed && (
               <h1 className="text-white origin-left font-medium text-2xl mt-1 mr-10 duration-300">
                 Chromagen
@@ -137,9 +177,9 @@ const AdminSidebar = () => {
           setSelected={setSelected}
         />
         <Item
-          title="Recent Bookings"
-          to="/"
-          icon={<ReceiptOutlined />}
+          title="Emails"
+          to="/AdminEmails"
+          icon={<MarkEmailReadIcon />}
           selected={selected}
           setSelected={setSelected}
         />
@@ -151,21 +191,28 @@ const AdminSidebar = () => {
         )}
         <Item
           title="Add User"
-          to="/"
+          to="/AdminSignup"
           icon={<GroupAddIcon />}
           selected={selected}
           setSelected={setSelected}
         />
         <Item
           title="Profile"
-          to={`/viewuser/${userLG._id}`}
+          to={`/viewprofile/${userLG._id}`}
           icon={<AccountCircleIcon />}
           selected={selected}
           setSelected={setSelected}
         />
         <Item
+          title="Recent Bookings"
+          to="/AdminBookings"
+          icon={<ReceiptOutlined />}
+          selected={selected}
+          setSelected={setSelected}
+        />
+        <Item
           title="Staff Performance"
-          to="/"
+          to="/AdminStaff"
           icon={<AnalyticsIcon />}
           selected={selected}
           setSelected={setSelected}
@@ -178,7 +225,7 @@ const AdminSidebar = () => {
         )}
         <Item
           title="Settings"
-          to="/"
+          to="/Settings"
           icon={<SettingsIcon />}
           selected={selected}
           setSelected={setSelected}
@@ -187,7 +234,7 @@ const AdminSidebar = () => {
           title="Sign Out"
           icon={<ExitToAppIcon />}
           onClick={handleClick}
-          style={{ color: "white", padding: "10px 35px" }}
+          style={{ color: "white", padding: "10px 25px" }}
         >
           Sign Out
         </MenuItem>
@@ -196,4 +243,4 @@ const AdminSidebar = () => {
   );
 };
 
-export default AdminSidebar
+export default AdminSidebar;
