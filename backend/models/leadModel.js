@@ -48,6 +48,9 @@ const leadSchema = new Schema({
     assignedTo: {
         type: Schema.Types.ObjectId, // Reference to Telemarketer user
         ref: 'UserLG' // Reference to the UserLG model
+    },
+    Distributed: {
+        type: Date
     }
 }, { timestamps: true })
 
