@@ -2,6 +2,9 @@ const Lead = require('../models/leadModel')
 const { updateInventoryCounts } = require('./inventoryController')
 const RecentBooking = require('../models/recentBookingModel')
 const mongoose = require('mongoose')
+const { updateLeadGenPerformance } = require('../services/leadGenService'); // Import the service
+const { updateBookedUnits } = require('../services/TelemarketerService'); // Import the service
+
 
 /** --- GET ALL LEADS FOR LEAD GENERATION --- */
 const getLeads = async (req, res) => {
@@ -33,12 +36,12 @@ const getUnassignedLeads = async (req, res) => {
             // Fetch new unassigned leads, limit to 10, and sort them
             unassignedLeads = await Lead.find({ assignedTo: { $exists: false } })
                 .limit(10)
-                .sort({ createdAt: -1 }) // Sort by createdAt field in descending order
+                .sort({ updatedAt: -1 }) // Sort by updatedAt field in descending order
                 .exec();
 
             // Assign fetched leads to the current Telemarketer
             await Promise.all(unassignedLeads.map(async (lead) => {
-                await Lead.findOneAndUpdate({ _id: lead._id }, { assignedTo: userLG_id })
+                await Lead.findOneAndUpdate({ _id: lead._id }, { assignedTo: userLG_id, Distributed: new Date() })
             }))
         }
 
@@ -104,6 +107,12 @@ const createLead = async (req, res) => {
 
     // add doc to db
     try {
+        const exists = await Lead.findOne({ name, type, phonenumber, streetaddress, emailaddress })
+
+        if (exists) {
+            throw Error('Lead already created')
+        }
+
         const userLG_id = req.userLG._id
         const lead = await Lead.create({ name, type, phonenumber, streetaddress, city, postcode, emailaddress, callDisposition, remarks, userLG_id, assignedTo })
 
@@ -120,6 +129,12 @@ const createLead = async (req, res) => {
             });
             await recentBooking.save()
         }
+
+        // Update lead generation performance
+        await updateLeadGenPerformance();
+
+        // Update BookedUnits
+        await updateBookedUnits(req.userLG.name);
 
         res.status(200).json(lead)
     } catch (error) {
@@ -143,6 +158,12 @@ const deleteLead = async (req, res) => {
 
     // Update inventory after deleting lead
     await updateInventoryCounts()
+
+    // Update lead generation performance
+    await updateLeadGenPerformance();
+
+    // Update BookedUnits
+    await updateBookedUnits(req.userLG.name);
 
     res.status(200).json(lead)
 
@@ -178,6 +199,12 @@ const updateLead = async (req, res) => {
         });
         await recentBooking.save();
     }
+
+    // Update lead generation performance
+    await updateLeadGenPerformance();
+
+    // Update BookedUnits
+    await updateBookedUnits(req.userLG.name);
 
     res.status(200).json(lead)
 }
