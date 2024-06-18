@@ -31,8 +31,6 @@ const signupUserLG = async (req, res) => {
 
   try {
     const userLG = await UserLG.signup(name, email, password, role, birthday, number, homeaddress, gender)
-    userLG.isActive = true // Mark user as active
-    await userLG.save() // Save the updated user status
 
     // Update inventory
     await updateInventoryCounts()
@@ -40,7 +38,7 @@ const signupUserLG = async (req, res) => {
     // create a token
     const token = createToken(userLG._id)
 
-    res.status(200).json({ _id: userLG._id, name, email, token, role, birthday, number, homeaddress, gender })
+    res.status(200).json({ userLG })
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
