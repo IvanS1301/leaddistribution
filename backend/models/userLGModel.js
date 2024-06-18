@@ -47,7 +47,7 @@ const userLGSchema = new Schema({
 }, { timestamps: true })
 
 // static signup method
-userLGSchema.statics.signup = async function(name, email, password, role) {
+userLGSchema.statics.signup = async function (name, email, password, role) {
 
   // validation
   if (!name || !email || !password || !role) {
@@ -75,7 +75,7 @@ userLGSchema.statics.signup = async function(name, email, password, role) {
 }
 
 // static login method
-userLGSchema.statics.login = async function(email, password) {
+userLGSchema.statics.login = async function (email, password) {
 
   if (!email || !password) {
     throw Error('All fields must be filled')
