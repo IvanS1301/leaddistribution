@@ -17,6 +17,12 @@ const { getInventory } = require('../controllers/inventoryController')
 // recentBookingController.js function
 const { getRecentBookings } = require('../controllers/recentBookingController')
 
+// leadGenPerformanceController.js functions
+const { getLeadGenPerformance } = require('../services/leadGenService');
+
+// bookedUnitsController.js function
+const { getBookedUnitsPerformance } = require('../services/TelemarketerService');
+
 const requireAuth = require('../middleware/requireAuth')
 const router = express.Router()
 
@@ -26,7 +32,9 @@ router.use(requireAuth)
 /** --- ADMIN --- */
 router.get('/tl', getTLLeads) // GET all TL leads
 router.get('/inventory', getInventory) // GET inventory
-router.get('/recent-bookings', getRecentBookings)
+router.get('/recent-bookings', getRecentBookings) // GET recent bookings
+router.get('/lead-gen-performance', getLeadGenPerformance); // GET LeadGen performance
+router.get('/booked-units-performance', getBookedUnitsPerformance); // GET booked units performance
 
 /** --- TELEMARKETER --- */
 router.get('/unassigned', getUnassignedLeads) // LEAD DISTRIBUTION
