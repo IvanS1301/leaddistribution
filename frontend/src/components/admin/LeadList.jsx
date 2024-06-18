@@ -1,171 +1,362 @@
-import { useEffect, useMemo, useState } from "react"
-import { useLeadsContext } from "../../hooks/useLeadsContext"
-import { useAuthContext } from "../../hooks/useAuthContext"
+import { Box, IconButton, Modal, CircularProgress, Button, Snackbar } from "@mui/material";
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import React, { useState } from 'react';
+import { Delete, Visibility } from '@mui/icons-material';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { useLeadsContext } from "../../hooks/useLeadsContext";
+import { useAuthContext } from "../../hooks/useAuthContext";
+import Header from '../Chart/Header';
+import moment from 'moment';
+import AssignPage from '../../pages/admin/AssignPage';
+import ReadLead from '../../pages/admin/ReadLead';
 
-// mui
-import { Box, Typography, TextField, IconButton } from '@mui/material'
-import { DataGrid } from '@mui/x-data-grid'
-import moment from 'moment'
-import { Search as SearchIcon, GetApp as GetAppIcon } from '@mui/icons-material'
+const LeadList = ({ tlLeads, userlgs, onLeadUpdate }) => {
+  const { dispatch } = useLeadsContext();
+  const { userLG } = useAuthContext();
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [openAssignModal, setOpenAssignModal] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState(null);
+  const [loadingDelete, setLoadingDelete] = useState(false); // State for delete loading
+  const [errorDelete, setErrorDelete] = useState(null); // State for delete error
+  const [showConfirmation, setShowConfirmation] = useState(false); // State for showing delete confirmation dialog
+  const [snackbarOpen, setSnackbarOpen] = useState(false); // State for Snackbar open
+  const [snackbarMessage, setSnackbarMessage] = useState(""); // State for Snackbar message
+  const [openViewModal, setOpenViewModal] = useState(false); // State for ViewLead modal
 
+  const userIdToNameMap = userlgs.reduce((acc, user) => {
+    acc[user._id] = user.name;
+    return acc;
+  }, {});
 
-const LeadList = () => {
-  const { tlLeads, dispatch: dispatchLeads } = useLeadsContext()
-  const { userLG } = useAuthContext()
-  const [searchQuery, setSearchQuery] = useState('')
-
-  const filteredLeads = tlLeads ? tlLeads.filter(lead =>
-    Object.values(lead).some(
-      value =>
-        typeof value === 'string' && value.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  ) : [];
-
-  useEffect(() => {
-    const fetchLeads = async () => {
-      const response = await fetch('/api/leads/tl', {
-        headers: { 'Authorization': `Bearer ${userLG.token}` },
-      })
-      const json = await response.json()
-
-      if (response.ok) {
-        dispatchLeads({ type: 'SET_TL-LEADS', payload: json })
-      }
+  const handleClick = async (leadId) => {
+    if (!userLG) {
+      return;
     }
-
-    fetchLeads()
-  }, [dispatchLeads, userLG])
-
-  const exportData = () => {
-    const exportLeads = filteredLeads.map(lead => ({
-      Name: lead.name || '',
-      Type: lead.type || '',
-      'Phone Number': lead.phonenumber || '',
-      'Street Address': lead.streetaddress || '',
-      City: lead.city || '',
-      Postcode: lead.postcode || '',
-      'Email Address': lead.emailaddress || '',
-      'Created At': lead.createdAt ? moment(lead.createdAt).format('MMM-D-YYYY') : '',
-      Distributed: lead.updatedAt ? moment(lead.updatedAt).format('MMM-D-YYYY') : '',
-      'Assigned To': lead.assignedTo || '',
-      Id: lead._id || '',
-    }));
-
-    const csvRows = [
-      Object.keys(exportLeads[0]).join(','),
-      ...exportLeads.map(lead => Object.values(lead).map(val => `"${val}"`).join(','))
-    ];
-
-    const csvString = csvRows.join('\n');
-
-    const blob = new Blob([csvString], { type: 'text/csv' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'leads.csv';
-    link.click();
+    setSelectedLeadId(leadId);
+    setShowConfirmation(true);
   };
 
-  const columns = useMemo(() => [
+  const handleOpenAssignModal = (leadId) => {
+    setSelectedLeadId(leadId);
+    setOpenAssignModal(true);
+  };
+
+  const handleCloseAssignModal = () => {
+    setOpenAssignModal(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleDeleteConfirmation = async () => {
+    try {
+      setLoadingDelete(true); // Start delete loading
+      const response = await fetch(`/api/leads/${selectedLeadId}`, {
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${userLG.token}`
+        }
+      });
+      const json = await response.json();
+
+      if (response.ok) {
+        dispatch({ type: "DELETE_TL_LEAD", payload: json });
+        setSnackbarMessage("Lead Deleted Successfully!");
+        setSnackbarOpen(true);
+        onLeadUpdate();
+      }
+    } catch (error) {
+      setErrorDelete('Error deleting lead.'); // Set delete error
+      console.error('Error deleting lead:', error);
+    } finally {
+      setLoadingDelete(false); // Stop delete loading
+      setShowConfirmation(false); // Close confirmation dialog
+    }
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false); // Close confirmation dialog
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
+  const handleOpenViewModal = (leadId) => {
+    setSelectedLeadId(leadId);
+    setOpenViewModal(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setOpenViewModal(false);
+    setSelectedLeadId(null);
+  };
+
+  const iconButtonStyle = { color: "#e0e0e0" };
+
+  const columns = [
     {
-      field: 'name',
-      headerName: 'Name',
-      width: 400,
-      headerClassName: 'bg-blue-gray text-white',
-      cellClassName: 'bg-black-gray font-bold border-b border-gray-400'
+      field: "_id",
+      headerName: "ID",
+      flex: 1,
+      minWidth: 90,
+      renderCell: (params) => params.value.slice(20, 26)
     },
     {
-      field: 'type',
-      headerName: 'Type',
-      width: 150,
-      headerClassName: 'bg-blue-gray text-white',
-      cellClassName: 'bg-black-gray font-bold border-b border-gray-400'
+      field: "name",
+      headerName: "Name",
+      flex: 1,
+      minWidth: 230,
+      cellClassName: "name-column--cell",
     },
     {
-      field: 'phonenumber',
-      headerName: 'Phone Number',
-      width: 180,
-      headerClassName: 'bg-blue-gray text-white',
-      cellClassName: 'bg-black-gray font-bold border-b border-gray-400',
-      sortable: false,
-      filterable: false
+      field: "type",
+      headerName: "Type",
+      flex: 1,
+      minWidth: 180,
     },
     {
-      field: 'emailaddress',
-      headerName: 'Email Address',
-      width: 280,
-      headerClassName: 'bg-blue-gray text-white',
-      cellClassName: 'bg-black-gray font-bold border-b border-gray-400'
+      field: "emailaddress",
+      headerName: "Email",
+      flex: 1,
+      minWidth: 250,
     },
     {
-      field: 'createdAt',
-      headerName: 'Created At',
-      width: 130,
-      headerClassName: 'bg-blue-gray text-white',
-      cellClassName: 'bg-black-gray font-bold border-b border-gray-400',
+      field: "userLG_id",
+      headerName: "Lead By",
+      flex: 1,
+      minWidth: 160,
+      renderCell: (params) => userIdToNameMap[params.value] || params.value,
+      cellClassName: "name-column--cell",
+    },
+    {
+      field: "callDisposition",
+      headerName: "Call Disposition",
+      flex: 1,
+      minWidth: 200,
+    },
+    {
+      field: "assignedTo",
+      headerName: "Assigned To",
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => userIdToNameMap[params.value] || params.value,
+      cellClassName: "name-column--cell",
+    },
+    {
+      field: "createdAt",
+      headerName: "Lead Gen Date",
+      flex: 1,
+      minWidth: 150,
       renderCell: (params) =>
         moment(params.row.createdAt).format('MMM-D-YYYY'),
     },
     {
-      field: 'updatedAt',
-      headerName: 'Distributed',
-      width: 130,
-      headerClassName: 'bg-blue-gray text-white',
-      cellClassName: 'bg-black-gray font-bold border-b border-gray-400',
+      field: "Distributed",
+      headerName: "Distributed",
+      flex: 1,
+      minWidth: 150,
       renderCell: (params) =>
-        moment(params.row.updatedAt).format('MMM-D-YYYY'),
+        moment(params.row.Distributed).format('MMM-D-YYYY'),
     },
     {
-      field: 'assignedTo',
-      headerName: 'Assigned To',
-      width: 230,
-      headerClassName: 'bg-blue-gray text-white',
-      cellClassName: 'bg-black-gray font-bold border-b border-gray-400'
+      field: "updatedAt",
+      headerName: "Last Touch",
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => {
+        const callDisposition = params.row.callDisposition;
+        return callDisposition ? moment(params.row.updatedAt).startOf('minute').fromNow() : '';
+      }
     },
     {
-      field: '_id',
-      headerName: 'Id',
-      width: 230,
-      headerClassName: 'bg-blue-gray text-white',
-      cellClassName: 'bg-black-gray font-bold border-b border-gray-400'
+      field: "actions",
+      headerName: "Actions",
+      flex: 1,
+      minWidth: 190,
+      renderCell: (params) => (
+        <Box>
+          <IconButton onClick={() => handleOpenViewModal(params.row._id)} style={iconButtonStyle}><Visibility /></IconButton>
+          <IconButton onClick={() => handleClick(params.row._id)} style={iconButtonStyle}><Delete /></IconButton>
+          <IconButton onClick={() => handleOpenAssignModal(params.row._id)} style={iconButtonStyle}><PersonAddAlt1Icon /></IconButton>
+        </Box>
+      )
     },
-  ], [])
+  ];
 
   return (
-    <Box
-      sx={{
-        height: 450,
-        width: '100%',
-      }}
-    >
-      <Typography variant="h3" component="h3" sx={{ textAlign: 'center', mt: 1, mb: 1 }}>
-        Manage Leads
-  </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <TextField
-          label="Search"
-          variant="outlined"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          InputProps={{
-            endAdornment: (
-              <IconButton onClick={() => setSearchQuery('')}>
-                <SearchIcon />
-              </IconButton>
-            ),
+    <Box m="20px">
+      <Header
+        title="LEADS"
+        subtitle="List of Leads"
+      />
+      <Box
+        m="40px 0 0 0"
+        height="75vh"
+        sx={{
+          "& .MuiDataGrid-root": {
+            border: "none",
+          },
+          "& .MuiDataGrid-cell": {
+            borderBottom: "none",
+            color: "#e0e0e0",
+            borderTop: "1px solid #525252",
+          },
+          "& .name-column--cell": {
+            color: "#94e2cd",
+          },
+          "& .MuiDataGrid-columnHeader": {
+            backgroundColor: "#3e4396",
+            borderBottom: "none",
+            color: "#e0e0e0",
+            fontSize: "18px"
+          },
+          "& .MuiDataGrid-virtualScroller": {
+            backgroundColor: "#101624",
+            fontSize: "17px",
+          },
+          "& .MuiDataGrid-headerContainer": {
+            borderTop: "none",
+          },
+          "& .MuiDataGrid-footerContainer": {
+            borderTop: "none",
+            backgroundColor: "#3e4396",
+          },
+          "& .MuiCheckbox-root": {
+            color: `#b7ebde !important`,
+          },
+          "& .MuiDataGrid-toolbarContainer .MuiButton-text": {
+            color: `#e0e0e0 !important`,
+          },
+        }}
+      >
+        <DataGrid
+          rows={tlLeads}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { pageSize: 25, page: 0 },
+            },
           }}
+          checkboxSelection
+          onSelectionModelChange={(newSelection) => {
+            setSelectedRows(newSelection);
+          }}
+          selectionModel={selectedRows}
+          slots={{
+            toolbar: GridToolbar,
+          }}
+          getRowId={row => row._id}
         />
-        <IconButton onClick={exportData}>
-          <GetAppIcon />
-        </IconButton>
       </Box>
-      <DataGrid
-        columns={columns}
-        rows={filteredLeads}
-        getRowId={row => row._id}
-        className="bg-blue-gray"
+      <Modal
+        open={openAssignModal}
+        onClose={handleCloseAssignModal}
+        aria-labelledby="assign-lead-modal-title"
+        aria-describedby="assign-lead-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
+          {selectedLeadId && <AssignPage leadId={selectedLeadId} onLeadUpdate={onLeadUpdate} />}
+        </Box>
+      </Modal>
+      <Modal
+        open={loadingDelete}
+        onClose={() => setLoadingDelete(false)}
+        aria-labelledby="delete-lead-modal-title"
+        aria-describedby="delete-lead-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+            textAlign: 'center',
+          }}
+        >
+          {loadingDelete ? (
+            <CircularProgress /> // Show CircularProgress while deleting
+          ) : (
+              <div>{errorDelete || 'Lead Deleted Successfully!'}</div> // Show error or success message
+            )}
+        </Box>
+      </Modal>
+      <Modal
+        open={showConfirmation}
+        onClose={handleCloseConfirmation}
+        aria-labelledby="delete-confirmation-modal-title"
+        aria-describedby="delete-confirmation-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+            textAlign: 'center',
+          }}
+        >
+          <div>Are you sure you want to delete this lead?</div>
+          <Button onClick={handleDeleteConfirmation}>Yes</Button>
+          <Button onClick={handleCloseConfirmation}>No</Button>
+        </Box>
+      </Modal>
+      <Modal
+        open={openViewModal}
+        onClose={handleCloseViewModal}
+        aria-labelledby="view-lead-modal-title"
+        aria-describedby="view-lead-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '80%',
+            maxHeight: '80%',
+            overflow: 'auto',
+
+
+          }}
+        >
+          {selectedLeadId && <ReadLead leadId={selectedLeadId} />}
+        </Box>
+      </Modal>
+      <Snackbar
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+        action={<CheckCircleIcon sx={{ color: '#94e2cd' }} />}
       />
     </Box>
   );
 };
 
-export default LeadList
+export default LeadList;
