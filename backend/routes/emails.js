@@ -1,6 +1,7 @@
 const express = require('express')
 const {
     getEmails,
+    getTLEmails,
     getSingleEmail,
     createEmail,
     deleteEmail,
@@ -13,19 +14,16 @@ const router = express.Router()
 // require auth for all lead routes
 router.use(requireAuth)
 
-// GET all emails
+/** --- ADMIN --- */
+router.get('/tl', getTLEmails)
+
+/** --- TELEMARKETER --- */
 router.get('/', getEmails)
 
-// GET a single lead
-router.get('/:id', getSingleEmail)
-
-// POST a new lead
-router.post('/', createEmail)
-
-// DELETE a lead
-router.delete('/:id', deleteEmail)
-
-// UPDATE a lead
-router.patch('/:id', updateEmail)
+/** --- ALL  --- */
+router.get('/:id', getSingleEmail) // GET a single email
+router.post('/', createEmail) // POST a new email
+router.delete('/:id', deleteEmail) // DELETE email
+router.patch('/:id', updateEmail) // UPDATE email
 
 module.exports = router
