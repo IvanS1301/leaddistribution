@@ -1,46 +1,32 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
 import { useLeadsContext } from "../../hooks/useLeadsContext"
-import { useUsersContext } from "../../hooks/useUsersContext"
 import { useAuthContext } from '../../hooks/useAuthContext'
-import { Link } from "react-router-dom"
+import { Box, Button, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { CircularProgress } from "@mui/material";
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import Modal from '@mui/material/Modal';
 
-const AssignLead = () => {
-  const { id } = useParams()
+const AssignLead = ({ userlgs, leadId, onLeadUpdate }) => {
   const { tlLeads, dispatch } = useLeadsContext()
-  const { userlgs, dispatch: userdispatch } = useUsersContext()
   const { userLG } = useAuthContext()
 
   const [leadData, setLeadData] = useState({
     assignedTo: ''
   })
-
+  const [loading, setLoading] = useState(false); // State for loading indicator
   const [error, setError] = useState(null)
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const response = await fetch('/api/userLG')
-      const json = await response.json()
-
-      if (response.ok) {
-        userdispatch({type: 'SET_USERS', payload: json})
-      }
-    }
-
-    fetchUsers()
-  }, [userdispatch])
+  const [openSuccessModal, setOpenSuccessModal] = useState(false); // State for success modal
 
 
   useEffect(() => {
     // Fetch the lead details based on the ID
-    const lead = tlLeads.find(lead => lead._id === id)
+    const lead = tlLeads.find(lead => lead._id === leadId)
     if (lead) {
       setLeadData({
-        assignedTo: lead.assignedTo
+        assignedTo: lead.assignedTo || ''
       })
     }
-  }, [id, tlLeads])
+  }, [leadId, tlLeads])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -52,9 +38,10 @@ const AssignLead = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true); // Start loading
 
     // Send the updated lead data to the backend for updating
-    const response = await fetch(`/api/leads/${id}`, {
+    const response = await fetch(`/api/leads/${leadId}`, {
       method: 'PATCH',
       body: JSON.stringify(leadData),
       headers: {
@@ -64,48 +51,99 @@ const AssignLead = () => {
     })
     const json = await response.json()
 
+    setLoading(false); // Stop loading
+
     if (!response.ok) {
       setError(json.error)
     }
     if (response.ok) {
       setError(null)
-      setShowSuccessMessage(true)
+      setOpenSuccessModal(true);
       // Update the lead in the local state
-      dispatch({ type: 'UPDATE_TL-LEAD', payload: json })
-    } 
+      dispatch({ type: 'UPDATE_TL_LEAD', payload: json })
+      // Delay the execution of onUserUpdate to show the modal first
+      setTimeout(() => {
+        setOpenSuccessModal(false);
+        onLeadUpdate();
+      }, 2000); // 2 seconds delay
+    }
   }
 
+  const handleCloseSuccessModal = () => {
+    setOpenSuccessModal(false);
+  };
+
   return (
-    <form className="create" onSubmit={handleSubmit}>
-    {showSuccessMessage && <div className="success">Assigned Successfully!</div>}
-    <Link to={"/"} className="back"><i className="fa-solid fa-arrow-left"></i></Link> 
-      <div className="title">Assign Lead</div>
-        <div className="lead-details">
-
-        <div className="input-box">
-        <label className="details">Assign To:</label>
-        <select
-            name="assignedTo"
-            value={leadData.assignedTo}
-            onChange={handleChange}
-            required
-        >
-            <option value="">Select User</option>
-            {userlgs && userlgs.map((userlg) => (
-              <option key={userlg._id} value={userlg._id}>
-                {userlg.name}
-              </option>
-            ))}
-        </select></div>
-
-        <div className="input-box">
-        <button className="submit">Submit</button>
-        {error && <div className="error">{error}</div>}
-      </div>
-
+    <Box
+      sx={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 600,
+        bgcolor: 'background.paper',
+        border: '2px solid #000',
+        boxShadow: 24,
+        p: 6,
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <div>Assign Lead</div>
+        <div>
+          <FormControl fullWidth>
+            <InputLabel id="assignedTo-label">Assign To:</InputLabel>
+            <Select
+              labelId="assignedTo-label"
+              id="assignedTo"
+              name="assignedTo"
+              value={leadData.assignedTo}
+              onChange={handleChange}
+              required
+            >
+              <MenuItem value="">
+                <em>Select User</em>
+              </MenuItem>
+              {userlgs && userlgs.map((userlg) => (
+                <MenuItem key={userlg._id} value={userlg._id}>
+                  {userlg.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Box mt={2}>
+            <Button variant="contained" type="submit" disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : "Submit"}
+            </Button>
+          </Box>
+          {error && <div className="error">{error}</div>}
         </div>
-    </form>
-  )
-}
+      </form>
+      <Modal
+        open={openSuccessModal}
+        onClose={handleCloseSuccessModal}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 400,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+            textAlign: 'center',
+          }}
+        >
+          <CheckCircleIcon sx={{ color: '#94e2cd', fontSize: 60 }} />
+          <div className="success">Assigned Successfully!</div>
+        </Box>
+      </Modal>
+    </Box>
+  );
+};
 
-export default AssignLead
+export default AssignLead;
